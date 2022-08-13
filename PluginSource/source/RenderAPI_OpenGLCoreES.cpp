@@ -137,8 +137,16 @@ static GLuint CreateShader(GLenum type, const char* sourceText)
 
 void RenderAPI_OpenGLCoreES::CreateResources()
 {
+	// https://github.com/Unity-Technologies/NativeRenderingPlugin/issues/19
+#if UNITY_WIN
+	gl3wInit();
+#endif
 	// Make sure that there are no GL error flags set before creating resources
-	while (glGetError() != GL_NO_ERROR) {}
+	GLenum err = glGetError();
+	while (err != GL_NO_ERROR) {
+		err = glGetError();
+	}
+	// while (glGetError() != GL_NO_ERROR) {}
 
 	// Create shaders
 	if (m_APIType == kUnityGfxRendererOpenGLES20)
@@ -154,9 +162,9 @@ void RenderAPI_OpenGLCoreES::CreateResources()
 #	if SUPPORT_OPENGL_CORE
 	else if (m_APIType == kUnityGfxRendererOpenGLCore)
 	{
-#		if UNITY_WIN
-		gl3wInit();
-#		endif
+//#		if UNITY_WIN
+//		gl3wInit();
+//#		endif
 
 		m_VertexShader = CreateShader(GL_VERTEX_SHADER, kGlesVProgTextGLCore);
 		m_FragmentShader = CreateShader(GL_FRAGMENT_SHADER, kGlesFShaderTextGLCore);
@@ -288,22 +296,23 @@ void RenderAPI_OpenGLCoreES::EndModifyTexture(void* textureHandle, int textureWi
 
 void* RenderAPI_OpenGLCoreES::BeginModifyVertexBuffer(void* bufferHandle, size_t* outBufferSize)
 {
+	// https://github.com/Unity-Technologies/NativeRenderingPlugin/issues/11#issuecomment-895084637
 #	if SUPPORT_OPENGL_ES
-	return 0;
-#	else
 	glBindBuffer(GL_ARRAY_BUFFER, (GLuint)(size_t)bufferHandle);
 	GLint size = 0;
 	glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
 	*outBufferSize = size;
 	void* mapped = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
 	return mapped;
+#	else
+	return 0;
 #	endif
 }
 
 
 void RenderAPI_OpenGLCoreES::EndModifyVertexBuffer(void* bufferHandle)
 {
-#	if !SUPPORT_OPENGL_ES
+#	if SUPPORT_OPENGL_ES
 	glBindBuffer(GL_ARRAY_BUFFER, (GLuint)(size_t)bufferHandle);
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 #	endif

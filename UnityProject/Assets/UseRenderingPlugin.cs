@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System;
 using System.Collections;
 using System.Runtime.InteropServices;
@@ -104,6 +104,7 @@ public class UseRenderingPlugin : MonoBehaviour
 		GCHandle gcNormals = GCHandle.Alloc (normals, GCHandleType.Pinned);
 		GCHandle gcUV = GCHandle.Alloc (uvs, GCHandleType.Pinned);
 
+		// plugin侧会拷贝一份pos, normal, uv数据
 		SetMeshBuffersFromUnity (mesh.GetNativeVertexBufferPtr (0), mesh.vertexCount, gcVertices.AddrOfPinnedObject (), gcNormals.AddrOfPinnedObject (), gcUV.AddrOfPinnedObject ());
 
 		gcVertices.Free ();
@@ -119,12 +120,14 @@ public class UseRenderingPlugin : MonoBehaviour
 			yield return new WaitForEndOfFrame();
 
 			// Set time for the plugin
+			// 简单得给g_Time赋值
 			SetTimeFromUnity (Time.timeSinceLevelLoad);
 
 			// Issue a plugin event with arbitrary integer identifier.
 			// The plugin can distinguish between different
 			// things it needs to do based on this ID.
 			// For our simple plugin, it does not matter which ID we pass here.
+			// 等效于直接执行Plugin里的OnRenderEvent()函数，但是能保证在render thread上执行
 			GL.IssuePluginEvent(GetRenderEventFunc(), 1);
 		}
 	}
