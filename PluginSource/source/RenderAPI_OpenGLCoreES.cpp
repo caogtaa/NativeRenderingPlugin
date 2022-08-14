@@ -1,4 +1,4 @@
-#include "RenderAPI.h"
+﻿#include "RenderAPI.h"
 #include "PlatformBase.h"
 
 // OpenGL Core profile (desktop) or OpenGL ES (mobile) implementation of RenderAPI.
@@ -64,6 +64,8 @@ private:
 	GLuint m_VertexBuffer;
 	int m_UniformWorldMatrix;
 	int m_UniformProjMatrix;
+	bool m_isWaitingForOcclusionQuery = false;
+	GLuint m_queryID;
 };
 
 
@@ -262,8 +264,27 @@ void RenderAPI_OpenGLCoreES::DrawSimpleTriangles(const float worldMatrix[16], in
 	glEnableVertexAttribArray(kVertexInputColor);
 	glVertexAttribPointer(kVertexInputColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, kVertexSize, (char*)NULL + 12);
 
-	// Draw
-	glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
+	if (!m_isWaitingForOcclusionQuery) {
+		glGenQueries(1, &m_queryID);
+		glBeginQuery(GL_SAMPLES_PASSED, m_queryID);
+
+		glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
+
+		glEndQuery(GL_SAMPLES_PASSED);
+		m_isWaitingForOcclusionQuery = true;
+	} else {
+		// draw without query
+		glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
+
+		// 先检查occlusion query结果是否就绪，如果未就绪前直接GL_QUERY_RESULT，会导致CPU测等待结果返回
+		GLuint64 params = 0;
+		glGetQueryObjectui64v(m_queryID, GL_QUERY_RESULT_AVAILABLE, &params);
+		if (params == GL_TRUE) {
+			glGetQueryObjectui64v(m_queryID, GL_QUERY_RESULT, &params);
+			glDeleteQueries(1, &m_queryID);
+			m_isWaitingForOcclusionQuery = false;
+		}
+	}
 
 	// Cleanup VAO
 #	if SUPPORT_OPENGL_CORE
