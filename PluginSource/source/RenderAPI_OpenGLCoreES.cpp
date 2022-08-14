@@ -276,10 +276,10 @@ void RenderAPI_OpenGLCoreES::DrawSimpleTriangles(const float worldMatrix[16], in
 		// draw without query
 		glDrawArrays(GL_TRIANGLES, 0, triangleCount * 3);
 
-		// 先检查occlusion query结果是否就绪，如果未就绪前直接GL_QUERY_RESULT，会导致CPU测等待结果返回
+		// 先检查occlusion query结果是否就绪，如果未就绪前直接GL_QUERY_RESULT，会导致CPU侧同步等待结果返回
 		GLuint64 params = 0;
 		glGetQueryObjectui64v(m_queryID, GL_QUERY_RESULT_AVAILABLE, &params);
-		if (params == GL_TRUE) {
+		if (true) {//params == GL_TRUE) {
 			glGetQueryObjectui64v(m_queryID, GL_QUERY_RESULT, &params);
 			glDeleteQueries(1, &m_queryID);
 			m_isWaitingForOcclusionQuery = false;
