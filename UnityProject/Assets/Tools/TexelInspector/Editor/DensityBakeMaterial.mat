@@ -2,14 +2,15 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!21 &2100000
 Material:
-  serializedVersion: 6
+  serializedVersion: 8
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: DensityBakeMaterial
   m_Shader: {fileID: 4800000, guid: 90c787944a80c8d4e8ade571218eda91, type: 3}
-  m_ShaderKeywords: 
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -40,7 +41,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _InputTexture:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: e27c860d09d10fa48862d6aa3bcca620, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
@@ -67,6 +68,7 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    m_Ints: []
     m_Floats:
     - _BumpScale: 1
     - _CheckerFade: 0.5
@@ -78,17 +80,17 @@ Material:
     - _GlossyReflections: 1
     - _IndicatorScalar: 1
     - _Metallic: 0
-    - _MipLevel: 10
+    - _MipLevel: 11
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _PixelsX: 1
     - _PixelsY: 1
-    - _ScaleX: 1
-    - _ScaleY: 1
+    - _ScaleX: 2
+    - _ScaleY: 2
     - _SmoothnessTextureChannel: 0
-    - _SourcePixelsX: 1024
-    - _SourcePixelsY: 1024
+    - _SourcePixelsX: 2048
+    - _SourcePixelsY: 2048
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _UVSec: 0

@@ -174,11 +174,9 @@ namespace TexelDensityTools
         }
 
         private static Color MipColorValue(int mipLevel) {
-            if (mipLevel >= _swatchColors.Length) {
-                return _swatchColors[_swatchColors.Length-1];
-            }
-
-            return _swatchColors[mipLevel];
+            var index = 7 - mipLevel;       // swatch 2048对应index = 7，并且排序和mip level相反
+            index = Mathf.Clamp(index, 0, _swatchColors.Length-1);
+            return _swatchColors[index];
         }
 
         private static RenderTexture GenerateSingleCalibrationTexture(int width, int height, int inMipLevel)

@@ -63,6 +63,8 @@ namespace TexelDensityTools
         private static readonly int IndicatorScalar = Shader.PropertyToID("IndicatorScalar");
         //private RenderPipelineEnum _renderPipeline;
 
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+
         private static Gradient MipGradient
         {
             get
@@ -257,6 +259,13 @@ namespace TexelDensityTools
             Shader.SetGlobalFloat(IndicatorScalar, _indicatorScalar);
             Shader.SetGlobalInt(UnitCheckers, _checkersPerUnit);
             GenerateAndSetTargetTexelTexture();
+            GenerateAndSetCalibrationTexture();
+        }
+
+        private static void GenerateAndSetCalibrationTexture() {
+            var texture = GenerateTextureUtility.GenerateCalibrationTexture(2048, 2048);
+            var material = GenerateTextureUtility.CalibrationMaterial;
+            material?.SetTexture(BaseMapId, texture);
         }
         
         private static void GenerateAndSetTargetTexelTexture()
