@@ -5,7 +5,6 @@ namespace TexelDensityTools
 {
     public static class MaterialModifierUtility
     {
-        #if UNITY_EDITOR
         private static readonly Dictionary<Material, Material> GeneratedReplacementMaterials;
 
         private static readonly string[] PreferredStrings = new[] {"albedo", "diffuse", "base", "color", "main", "emission"};
@@ -136,6 +135,5 @@ namespace TexelDensityTools
         {
             GeneratedReplacementMaterials.Clear();
         }
-        #endif
     }
 }

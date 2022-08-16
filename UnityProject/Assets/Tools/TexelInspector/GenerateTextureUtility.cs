@@ -1,14 +1,11 @@
 using System.Collections.Generic;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 using UnityEngine;
+using UnityEditor;
 
 namespace TexelDensityTools
 {
     public static class GenerateTextureUtility
     {
-#if UNITY_EDITOR
         private static readonly List<Texture> GeneratedTextures = new List<Texture>();
         private static readonly Dictionary<Texture, Texture> TextureDictionary = new Dictionary<Texture, Texture>();
         private static readonly int WorldTexelColor = Shader.PropertyToID("WorldTexelColor");
@@ -207,6 +204,5 @@ namespace TexelDensityTools
             //GeneratedTextures.Clear();
             TextureDictionary.Clear();
         }
-#endif
     }
 }

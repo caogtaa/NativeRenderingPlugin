@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
+using UnityEditor;
 using UnityEngine.SceneManagement;
 
 namespace TexelDensityTools
@@ -9,7 +9,6 @@ namespace TexelDensityTools
     [ExecuteInEditMode]
     public class MaterialReplacementStorage : MonoBehaviour
     {
-        #if UNITY_EDITOR
         [HideInInspector]
         public MaterialRendererLink[] RendererLinks;
         public MaterialTerrainLink[] TerrainLinks;
@@ -123,7 +122,6 @@ namespace TexelDensityTools
             RendererLinks = _tempRenderingLinks.ToArray();
             TerrainLinks = _tempTerrainLinks.ToArray();
         }
-        #endif 
     }
 
     [Serializable]
