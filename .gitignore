@@ -2,6 +2,7 @@
 *.vcxproj.user
 *.VC.opendb
 .vs
+.vscode
 
 xcuserdata
 *.xcworkspace
