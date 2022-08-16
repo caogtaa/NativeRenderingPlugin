@@ -45,6 +45,8 @@ namespace TexelDensityTools
         }
 
         private static Material _texelDisplayMaterial;
+        private static Material _pureColorMaterial;
+        private static Material _calibrationMaterial;
         private static readonly int ScaleX = Shader.PropertyToID("_ScaleX");
         private static readonly int ScaleY = Shader.PropertyToID("_ScaleY");
         private static readonly int PixelsX = Shader.PropertyToID("_PixelsX");
@@ -56,6 +58,11 @@ namespace TexelDensityTools
         private static readonly int Slice = Shader.PropertyToID("_Slice");
         private static readonly int MainTexArray = Shader.PropertyToID("_MainTexArray");
 
+        // Calibration Texture
+        private static readonly int MipColorId = Shader.PropertyToID("_MipColor");
+        private static readonly int MipAlphaId = Shader.PropertyToID("_MipAlpha");  // TODO: 要改为range在内部随机
+
+        // 用于烘焙mipmap的材质
         private static Material TexelDisplayMaterial
         {
             get
@@ -66,6 +73,34 @@ namespace TexelDensityTools
                 string sourceMaterialPath = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("DensityBakeMaterial t: Material")[0]);
                 _texelDisplayMaterial = AssetDatabase.LoadAssetAtPath<Material>(sourceMaterialPath);
                 return _texelDisplayMaterial;
+            }
+        }
+
+        // 用于烘焙Calibration Texture的材质
+        // 目前是用纯色RGB+灰度alpha的方式，后面RGB要改成原图，alpha要改成范围噪声
+        private static Material PureColorMaterial
+        {
+            get
+            {
+                if (_pureColorMaterial != null)
+                    return _pureColorMaterial;
+                
+                string sourceMaterialPath = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("PureColorMaterial t: Material")[0]);
+                _pureColorMaterial = AssetDatabase.LoadAssetAtPath<Material>(sourceMaterialPath);
+                return _pureColorMaterial;
+            }
+        }
+
+        // 用于烘焙Calibration Texture的材质
+        // 目前是用纯色RGB+灰度alpha的方式，后面RGB要改成原图，alpha要改成范围噪声
+        public static Material CalibrationMaterial {
+            get {
+                if (_calibrationMaterial != null)
+                    return _calibrationMaterial;
+
+                string sourceMaterialPath = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("CalibrationMaterial t: Material")[0]);
+                _calibrationMaterial = AssetDatabase.LoadAssetAtPath<Material>(sourceMaterialPath);
+                return _calibrationMaterial;
             }
         }
 
@@ -112,6 +147,63 @@ namespace TexelDensityTools
             //GeneratedTextures.Add(outputTexture);
             TextureDictionary.Add(inTexture, outputTexture);
             return outputTexture;
+        }
+
+        // 生成测量用mipmap chain，RGB暂时全白，每级的alpha通道写入不同数值
+        public static Texture GenerateCalibrationTexture(int width, int height) {
+            float maxMipLevel = Mathf.Log(Mathf.Max(width, height), 2);
+            Texture2D outputTexture = new Texture2D(width, height, TextureFormat.ARGB32, true);
+            for (int mipLevel = 0; mipLevel <= maxMipLevel; mipLevel++) {
+                Graphics.CopyTexture(GenerateSingleCalibrationTexture(width, height, mipLevel), 0, 0, outputTexture, 0, mipLevel);
+                // TODO: 可以拷贝原始纹理的其他级mipmap到目标RT
+            }
+            return outputTexture;
+        }
+
+
+        private static float[] _mipAlphaValues = new float[5] {
+            1, 0.75f, 0.5f, 0.25f, 0
+        };
+
+        private static float MipAlphaValue(int mipLevel) {
+            if (mipLevel >= _mipAlphaValues.Length) {
+                return 0;
+            }
+
+            return _mipAlphaValues[mipLevel];
+        }
+
+        private static Color MipColorValue(int mipLevel) {
+            if (mipLevel >= _swatchColors.Length) {
+                return _swatchColors[_swatchColors.Length-1];
+            }
+
+            return _swatchColors[mipLevel];
+        }
+
+        private static RenderTexture GenerateSingleCalibrationTexture(int width, int height, int inMipLevel)
+        {
+            width = Mathf.Max(width, 1);
+            height = Mathf.Max(height, 1);
+            int mipDivisor = (int)Mathf.Pow(2, inMipLevel);
+
+            // width, height是原图大小，mipmap大小需要除以对应的系数
+            int mipWidth = (width / mipDivisor);
+            int mipHeight = (height / mipDivisor);
+            mipWidth = Mathf.Max(mipWidth, 1);
+            mipHeight = Mathf.Max(mipHeight, 1);
+            
+            RenderTexture tempRenderTexture = new RenderTexture(mipWidth, mipHeight, 0, RenderTextureFormat.ARGB32) {
+                useMipMap = false,
+                wrapMode = TextureWrapMode.Repeat,
+                autoGenerateMips = false
+            };
+
+            var material = PureColorMaterial;
+            material.SetColor(MipColorId, MipColorValue(inMipLevel));
+            material.SetFloat(MipAlphaId, MipAlphaValue(inMipLevel));
+            Graphics.Blit(null, tempRenderTexture, material);
+            return tempRenderTexture;
         }
         
         public static Texture GenerateWorldDensityTexture(int width, int height, int texelDensity)

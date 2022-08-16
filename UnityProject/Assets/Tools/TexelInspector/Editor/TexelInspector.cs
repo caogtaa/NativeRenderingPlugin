@@ -189,6 +189,9 @@ namespace TexelDensityTools
                 GenerateTextureUtility.ColorEachMipmap(_colorEachMipmap);
                 DisplayInAllScenes();
             }
+            if (GUILayout.Button("替换为测量图")) {
+                ApplyCalibrationMaterial();
+            }
             if (GUILayout.Button("Hide All Displays"))
             {
                 DisableRendererOverride();
@@ -209,10 +212,29 @@ namespace TexelDensityTools
             var currentActiveScene = SceneManager.GetActiveScene();
             for (int i = 0; i < SceneManager.sceneCount; i++)
             {
+                // 每个scene挂一个storage对象，保存被替换的renderer和原材质关系
                 SceneManager.SetActiveScene(SceneManager.GetSceneAt(i));
                 GameObject storageObject = new GameObject("TexelDensityDataStorageObject") {tag = "EditorOnly"};
                 MaterialReplacementStorage materialReplacementStorage = storageObject.AddComponent<MaterialReplacementStorage>();
                 LinkRenderers(materialReplacementStorage, SceneManager.GetSceneAt(i).GetRootGameObjects());
+            }
+
+            SceneManager.SetActiveScene(currentActiveScene);
+        }
+
+        private void ApplyCalibrationMaterial() {
+            UpdateShaderGlobals();
+            DisableRendererOverride();
+            RestoreAllMaterials();
+
+            GenerateTextureUtility.ClearGeneratedTextures();
+            MaterialModifierUtility.ClearGeneratedMaterials();
+            var currentActiveScene = SceneManager.GetActiveScene();
+            for (int i = 0; i < SceneManager.sceneCount; i++) {
+                SceneManager.SetActiveScene(SceneManager.GetSceneAt(i));
+                GameObject storageObject = new GameObject("TexelDensityDataStorageObject") { tag = "EditorOnly" };
+                MaterialReplacementStorage materialReplacementStorage = storageObject.AddComponent<MaterialReplacementStorage>();
+                ReplaceWithCalibrationMaterial(materialReplacementStorage, SceneManager.GetSceneAt(i).GetRootGameObjects());
             }
 
             SceneManager.SetActiveScene(currentActiveScene);
@@ -297,6 +319,32 @@ namespace TexelDensityTools
             catch (Exception e)
             {
                 EditorUtility.DisplayDialog("Error!",string.Format("Something unexpected happened while trying to replace materials. Error message is <{0}> <{1}>", e.Message, e.StackTrace), "Ok");
+                EditorUtility.ClearProgressBar();
+                throw;
+            }
+            replacementStorageObject.SerializeMaterialReplacements();
+        }
+
+        // 
+        private static void ReplaceWithCalibrationMaterial(MaterialReplacementStorage replacementStorageObject, GameObject[] rootGameObjects) {
+            try {
+                for (int i = 0; i < rootGameObjects.Length; i++) {
+                    EditorUtility.DisplayProgressBar("Finding Renderers",
+                        string.Format("{0} out of {1} root game objects searched.", i, rootGameObjects.Length), (float)i / rootGameObjects.Length);
+                    MeshRenderer[] meshRenderers = rootGameObjects[i].GetComponentsInChildren<MeshRenderer>();
+                    for (var index = 0; index < meshRenderers.Length; index++) {
+                        replacementStorageObject.ReplaceWithCalibrationMaterial(meshRenderers[index]);
+                    }
+
+                    // 不管地形，项目里没有
+                    //Terrain[] terrains = rootGameObjects[i].GetComponentsInChildren<Terrain>();
+                    //for (var index = 0; index < terrains.Length; index++) {
+                    //    replacementStorageObject.LinkTerrain(terrains[index], _texelsPerUnit);
+                    //}
+                }
+                EditorUtility.ClearProgressBar();
+            } catch (Exception e) {
+                EditorUtility.DisplayDialog("Error!", string.Format("Something unexpected happened while trying to replace materials. Error message is <{0}> <{1}>", e.Message, e.StackTrace), "Ok");
                 EditorUtility.ClearProgressBar();
                 throw;
             }

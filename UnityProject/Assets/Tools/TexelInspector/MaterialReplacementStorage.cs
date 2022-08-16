@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
@@ -84,6 +84,7 @@ namespace TexelDensityTools
             TerrainLinks = null;
         }
         
+        // 执行材质替换
         public void LinkRenderer(MeshRenderer meshRenderer, int texelsPerMeter)
         {
             if (meshRenderer.sharedMaterials.Length > 1)
@@ -108,7 +109,28 @@ namespace TexelDensityTools
                     meshRenderer.sharedMaterial = displayMaterial;
             }
         }
-        
+
+        public void ReplaceWithCalibrationMaterial(MeshRenderer meshRenderer) {
+            Material calibrationMaterial = GenerateTextureUtility.CalibrationMaterial;
+            if (meshRenderer.sharedMaterials.Length > 1) {
+                _tempRenderingLinks.Add(new MaterialRendererLink { Renderer = meshRenderer, Materials = meshRenderer.sharedMaterials });
+                Material[] tempMaterialArray = meshRenderer.sharedMaterials;
+                for (var i = 0; i < meshRenderer.sharedMaterials.Length; i++) {
+                    //_materialsInScene.Add(meshRenderer.sharedMaterials[i]);
+                    Material displayMaterial = calibrationMaterial;
+                    if (displayMaterial != null)
+                        tempMaterialArray[i] = displayMaterial;
+                }
+                meshRenderer.sharedMaterials = tempMaterialArray;
+            } else {
+                //_materialsInScene.Add(meshRenderer.sharedMaterial);
+                _tempRenderingLinks.Add(new MaterialRendererLink { Renderer = meshRenderer, Material = meshRenderer.sharedMaterial });
+                Material displayMaterial = calibrationMaterial;
+                if (displayMaterial != null)
+                    meshRenderer.sharedMaterial = displayMaterial;
+            }
+        }
+
         public void LinkTerrain(Terrain terrain, int texelsPerMeter)
         {
             _tempTerrainLinks.Add(new MaterialTerrainLink() {Terrain = terrain, Material = terrain.materialTemplate});

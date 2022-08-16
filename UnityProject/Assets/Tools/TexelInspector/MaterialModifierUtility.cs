@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace TexelDensityTools
@@ -6,7 +6,7 @@ namespace TexelDensityTools
     public static class MaterialModifierUtility
     {
         private static readonly Dictionary<Material, Material> GeneratedReplacementMaterials;
-
+        
         private static readonly string[] PreferredStrings = new[] {"albedo", "diffuse", "base", "color", "main", "emission"};
         private static readonly string[] BannedStrings = new[] {"metallic", "ao", "ambient", "bump", "normal", "nrm", "detail"};
         
@@ -33,6 +33,8 @@ namespace TexelDensityTools
                 return texelDisplayMaterial;
             }
 
+            // 直接复制一份原材质，并拷贝属性
+            // 这样可以方便考虑到原材质的tileoffset。在目前项目大量使用lit shader并且没有detail的情况下没有什么必要
             Material newTexelDisplayMaterial = new Material(sceneMaterial.shader) {name = string.Format("{0}_TexelDisplay", sceneMaterial.name)};
             newTexelDisplayMaterial.CopyPropertiesFromMaterial(sceneMaterial);
             // Look for a few default material values we can set to better defaults
