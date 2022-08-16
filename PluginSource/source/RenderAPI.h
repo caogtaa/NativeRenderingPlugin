@@ -47,6 +47,10 @@ public:
 	virtual void* BeginModifyVertexBuffer(void* bufferHandle, size_t* outBufferSize) = 0;
 	// End modifying vertex buffer data.
 	virtual void EndModifyVertexBuffer(void* bufferHandle) = 0;
+
+	virtual void DoBeginQuery() {};
+
+	virtual void DoEndQuery() {};
 };
 
 

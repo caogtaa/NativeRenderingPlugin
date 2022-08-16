@@ -5,6 +5,7 @@ using TexelDensityTools;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Runtime.InteropServices;
 
 [ExecuteInEditMode]
 public class OcclusionQueryUI : MonoBehaviour
@@ -17,6 +18,22 @@ public class OcclusionQueryUI : MonoBehaviour
     protected Material _originMaterial;
     protected Material[] _originMaterials;
     protected int _originLayer;
+
+
+#if (UNITY_IOS || UNITY_TVOS || UNITY_WEBGL) && !UNITY_EDITOR
+	[DllImport ("__Internal")]
+#else
+	[DllImport("RenderingPlugin")]
+#endif
+	private static extern IntPtr GetBeginQueryEventFunc();
+
+#if (UNITY_IOS || UNITY_TVOS || UNITY_WEBGL) && !UNITY_EDITOR
+	[DllImport ("__Internal")]
+#else
+	[DllImport("RenderingPlugin")]
+#endif
+	private static extern IntPtr GetEndQueryEventFunc();
+
 
     // Start is called before the first frame update
     void Start() {
@@ -58,6 +75,9 @@ public class OcclusionQueryUI : MonoBehaviour
                 return;
             }
 
+            // TODO: open
+            return;
+
             int i = 0;
             for (; i < _alphaThresholds.Length; ++i) {
                 float alpha = _alphaThresholds[i] - 0.001f;      // 0.001f避免比较相等时的浮点误差，TODO: 后面改用区间噪声alpha后就不需要0.001f了
@@ -90,8 +110,11 @@ public class OcclusionQueryUI : MonoBehaviour
         }
 
         // TODO: start query, call native plugin
+        GL.IssuePluginEvent(GetBeginQueryEventFunc(), 1);
         OcclusionQueryCamera.Render();
         // TODO: end query
+        GL.IssuePluginEvent(GetEndQueryEventFunc(), 1);
+        
 
         return 0;
     }
