@@ -62,6 +62,7 @@ namespace TexelDensityTools
         private static readonly int UnitCheckers = Shader.PropertyToID("UnitCheckers");
         private static readonly int IndicatorScalar = Shader.PropertyToID("IndicatorScalar");
         //private RenderPipelineEnum _renderPipeline;
+        private static OcclusionQueryRunner _runner = new OcclusionQueryRunner();
 
         private static Gradient MipGradient
         {
@@ -197,6 +198,10 @@ namespace TexelDensityTools
                 DisableRendererOverride();
                 RestoreAllMaterials();
             }
+
+            if (GUILayout.Button("测量")) {
+                DoQuerySomeGameObject();
+            }
             //_renderPipeline = (RenderPipelineEnum)EditorGUILayout.EnumPopup("Render Pipeline", _renderPipeline);
         }
 
@@ -220,6 +225,46 @@ namespace TexelDensityTools
             }
 
             SceneManager.SetActiveScene(currentActiveScene);
+        }
+
+        public static GameObject FindObject(GameObject parent, string name) {
+            Transform[] trs = parent.GetComponentsInChildren<Transform>(true);
+            foreach (Transform t in trs) {
+                if (t.name == name) {
+                    return t.gameObject;
+                }
+            }
+            return null;
+        }
+
+        public static GameObject FindObjectInRootGOs(GameObject[] rootGOs, string name) {
+            foreach (var go in rootGOs) {
+                if (go.name.Equals(name)) {
+                    return go;
+                }
+
+                var child = FindObject(go, name);
+                if (child != null)
+                    return child;
+            }
+
+            return null;
+        }
+
+        private void DoQuerySomeGameObject() {
+            var scene = SceneManager.GetActiveScene();
+            var gos = scene.GetRootGameObjects();
+            var cameraGO = FindObjectInRootGOs(gos, "OcclusionQueryCamera");
+            var rendererGO = FindObjectInRootGOs(gos, "Sphere");
+            if (cameraGO == null || rendererGO == null)
+                return;
+
+            var rt = AssetDatabase.LoadAssetAtPath<RenderTexture>("Assets/Settings/OcclusionQueryRT.renderTexture");
+            if (rt == null)
+                return;
+
+            _runner.Setup(cameraGO.GetComponent<Camera>(), rt);
+            _runner.QuerySingleRenderer(rendererGO.GetComponent<MeshRenderer>());
         }
 
         private void ApplyCalibrationMaterial() {
