@@ -12,12 +12,10 @@ public class OcclusionQueryUI : MonoBehaviour
     public TMP_Text LabelFragPass;
     public Camera OcclusionQueryCamera;
     public MeshRenderer TargetObject;
-    public LayerMask TempLayer;         // 临时layer，将需要渲染的物体临时切换到这个layer，数值需要等于camera.cullingMask
-    public RenderTexture TempRT;
 
     protected Material _originMaterial;
     protected Material[] _originMaterials;
-    protected int _originLayer;
+    // protected int _originLayer;
 
 
 #if (UNITY_IOS || UNITY_TVOS || UNITY_WEBGL) && !UNITY_EDITOR
@@ -53,7 +51,7 @@ public class OcclusionQueryUI : MonoBehaviour
         QuerySingleRenderer(TargetObject);  // TODO: 后续替换为逐对象
     }
 
-    private Matrix4x4 GetPVMMatrix(GameObject go, Camera camera) {
+    private Matrix4x4 GetMVPMatrix(GameObject go, Camera camera) {
         // bool d3d = SystemInfo.graphicsDeviceVersion.IndexOf("Direct3D") > -1;
         Matrix4x4 M = go.transform.localToWorldMatrix;
         Matrix4x4 V = camera.worldToCameraMatrix;
@@ -83,9 +81,9 @@ public class OcclusionQueryUI : MonoBehaviour
         var calibrationMaterial = GenerateTextureUtility.CalibrationMaterial;   // TODO: 确保测量纹理已经加载到材质
 
         try {
-            _originLayer = renderer.gameObject.layer;
+            // _originLayer = renderer.gameObject.layer;
             // 替换材质
-            ReplaceWithCalibrationMaterial(renderer, calibrationMaterial);
+            // ReplaceWithCalibrationMaterial(renderer, calibrationMaterial);
             // renderer.gameObject.layer = TempLayer.value;
             // Graphics.SetRenderTarget(TempRT);
             // GL.Clear(true, true, Color.black);
@@ -93,14 +91,11 @@ public class OcclusionQueryUI : MonoBehaviour
             var projectionMatrix = GL.GetGPUProjectionMatrix(OcclusionQueryCamera.projectionMatrix, false);
             GL.LoadProjectionMatrix(projectionMatrix);
 
-            var PVM = GetPVMMatrix(renderer.gameObject, OcclusionQueryCamera);
-
-            // 设置DrawMeshNow需要的矩阵，很乱
-            // https://forum.unity.com/threads/using-graphics-drawmeshnow-with-a-gl-loadortho-is-this-a-valid-method.330707/
+            var MVP = GetMVPMatrix(renderer.gameObject, OcclusionQueryCamera);
             
             // TODO: 逐步调整
             // test total fragment count without alpha clip
-            int total = CountFragmentWithAlphaThreshold(renderer, 0, calibrationMaterial, PVM);
+            int total = CountFragmentWithAlphaThreshold(renderer, 0, calibrationMaterial, MVP);
             if (total <= 0) {
                 // 当前renderer没有在摄像机里，不做剔除
                 // TODO: 还是记录一下
@@ -113,7 +108,7 @@ public class OcclusionQueryUI : MonoBehaviour
             int i = 0;
             for (; i < _alphaThresholds.Length; ++i) {
                 float alpha = _alphaThresholds[i] - 0.001f;      // 0.001f避免比较相等时的浮点误差，TODO: 后面改用区间噪声alpha后就不需要0.001f了
-                int fragPass = CountFragmentWithAlphaThreshold(renderer, alpha, calibrationMaterial, PVM);
+                int fragPass = CountFragmentWithAlphaThreshold(renderer, alpha, calibrationMaterial, MVP);
                 if (fragPass >= total * 0.15) {
                     // 当前mip超过15%可见，保留。该纹理从2048开始剔除i层mipmap，即缩小比例为pow(4, -i)
                     // TODO: 记录当前renderer需要使用mipLevel = i
@@ -127,12 +122,12 @@ public class OcclusionQueryUI : MonoBehaviour
         } finally {
             // 回滚材质
             GL.PopMatrix();
-            renderer.gameObject.layer = _originLayer;
-            RestoreMaterial(renderer);
+            // renderer.gameObject.layer = _originLayer;
+            // RestoreMaterial(renderer);
         }
     }
 
-    int CountFragmentWithAlphaThreshold(MeshRenderer renderer, float alphaThreshold, Material calibrationMaterial, Matrix4x4 PVM) {
+    int CountFragmentWithAlphaThreshold(MeshRenderer renderer, float alphaThreshold, Material calibrationMaterial, Matrix4x4 MVP) {
         if (alphaThreshold < 0.001) {
             calibrationMaterial.SetFloat("_AlphaClip", 0);
             calibrationMaterial.DisableKeyword("_ALPHATEST_ON");
@@ -147,11 +142,15 @@ public class OcclusionQueryUI : MonoBehaviour
             return 0;
 
         var mesh = meshFilter.sharedMesh;
+        var matrixMV = OcclusionQueryCamera.worldToCameraMatrix * renderer.transform.localToWorldMatrix;
         // TODO: start query, call native plugin
         //GL.IssuePluginEvent(GetBeginQueryEventFunc(), 1);
         if (mesh != null && calibrationMaterial.SetPass(0)) {
-            // Graphics.DrawMeshNow(mesh, PVM);
-            Graphics.DrawMeshNow(mesh, OcclusionQueryCamera.worldToCameraMatrix * renderer.transform.localToWorldMatrix);
+            // 经过大量测试，DrawMeshNow需要的矩阵是MV矩阵
+            // P矩阵通过GL.LoadProjectionMatrix()进行设置
+            Graphics.DrawMeshNow(mesh, matrixMV);
+
+            // DrawMesh会推迟到forward pass里执行，这里不适用
             // Graphics.DrawMesh(mesh, renderer.transform.localToWorldMatrix, calibrationMaterial, _originLayer);
         }
         //OcclusionQueryCamera.Render();

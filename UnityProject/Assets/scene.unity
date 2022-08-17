@@ -947,8 +947,7 @@ MonoBehaviour:
   TargetObject: {fileID: 23}
   TempLayer:
     serializedVersion: 2
-    m_Bits: 67108864
-  TempRT: {fileID: 8400000, guid: 89c82586c75e94a4988d2f8364eda0cb, type: 2}
+    m_Bits: 0
 --- !u!1 &1167916238
 GameObject:
   m_ObjectHideFlags: 0
