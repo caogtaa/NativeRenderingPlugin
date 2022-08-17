@@ -362,7 +362,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 17}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.109563, y: 1.027012, z: -1.076521}
+  m_LocalPosition: {x: -1.93, y: 1.027012, z: -1.076521}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -945,9 +945,7 @@ MonoBehaviour:
   LabelFragPass: {fileID: 2081372211}
   OcclusionQueryCamera: {fileID: 1167916242}
   TargetObject: {fileID: 23}
-  TempLayer:
-    serializedVersion: 2
-    m_Bits: 0
+  TempRT: {fileID: 8400000, guid: e19d4f1f0f562c648adf28a39473db1b, type: 2}
 --- !u!1 &1167916238
 GameObject:
   m_ObjectHideFlags: 0

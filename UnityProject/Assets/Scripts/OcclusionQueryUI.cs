@@ -12,6 +12,7 @@ public class OcclusionQueryUI : MonoBehaviour
     public TMP_Text LabelFragPass;
     public Camera OcclusionQueryCamera;
     public MeshRenderer TargetObject;
+    public RenderTexture TempRT;
 
     protected Material _originMaterial;
     protected Material[] _originMaterials;
@@ -85,7 +86,9 @@ public class OcclusionQueryUI : MonoBehaviour
             // 替换材质
             // ReplaceWithCalibrationMaterial(renderer, calibrationMaterial);
             // renderer.gameObject.layer = TempLayer.value;
-            // Graphics.SetRenderTarget(TempRT);
+            if (TempRT)
+                Graphics.SetRenderTarget(TempRT);
+
             // GL.Clear(true, true, Color.black);
             GL.PushMatrix();
             var projectionMatrix = GL.GetGPUProjectionMatrix(OcclusionQueryCamera.projectionMatrix, false);
@@ -144,7 +147,7 @@ public class OcclusionQueryUI : MonoBehaviour
         var mesh = meshFilter.sharedMesh;
         var matrixMV = OcclusionQueryCamera.worldToCameraMatrix * renderer.transform.localToWorldMatrix;
         // TODO: start query, call native plugin
-        //GL.IssuePluginEvent(GetBeginQueryEventFunc(), 1);
+        GL.IssuePluginEvent(GetBeginQueryEventFunc(), 1);
         if (mesh != null && calibrationMaterial.SetPass(0)) {
             // 经过大量测试，DrawMeshNow需要的矩阵是MV矩阵
             // P矩阵通过GL.LoadProjectionMatrix()进行设置
@@ -155,7 +158,7 @@ public class OcclusionQueryUI : MonoBehaviour
         }
         //OcclusionQueryCamera.Render();
         // TODO: end query
-        //GL.IssuePluginEvent(GetEndQueryEventFunc(), 1);
+        GL.IssuePluginEvent(GetEndQueryEventFunc(), 1);
         
 
         return 0;
