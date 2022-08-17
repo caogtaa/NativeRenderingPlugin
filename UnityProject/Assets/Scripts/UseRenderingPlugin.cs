@@ -56,10 +56,11 @@ public class UseRenderingPlugin : MonoBehaviour
 #if UNITY_WEBGL && !UNITY_EDITOR
 		RegisterPlugin();
 #endif
-		CreateTextureAndPassToPlugin();
-		SendMeshBuffersToPlugin();
-		yield return StartCoroutine("CallPluginAtEndOfFrames");
-	}
+        yield return null;
+        // CreateTextureAndPassToPlugin();
+        // SendMeshBuffersToPlugin();
+        // yield return StartCoroutine("CallPluginAtEndOfFrames");
+    }
 
 	private void CreateTextureAndPassToPlugin()
 	{

@@ -7,13 +7,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Runtime.InteropServices;
 
-[ExecuteInEditMode]
 public class OcclusionQueryUI : MonoBehaviour
 {
     public TMP_Text LabelFragPass;
     public Camera OcclusionQueryCamera;
     public MeshRenderer TargetObject;
     public LayerMask TempLayer;         // 临时layer，将需要渲染的物体临时切换到这个layer，数值需要等于camera.cullingMask
+    public RenderTexture TempRT;
 
     protected Material _originMaterial;
     protected Material[] _originMaterials;
@@ -36,14 +36,14 @@ public class OcclusionQueryUI : MonoBehaviour
 
 
     // Start is called before the first frame update
-    void Start() {
+    //void Start() {
 
-    }
+    //}
 
-    // Update is called once per frame
-    void Update() {
-
-    }
+    //// Update is called once per frame
+    //void Update() {
+        
+    //}
 
     public void OnQueryBtnClicked() {
         // TODO: 确保材质加载并且测量纹理已经设置到材质
@@ -51,6 +51,27 @@ public class OcclusionQueryUI : MonoBehaviour
         // Debug.Log("Start Query");
         // LabelFragPass.text = "1234";
         QuerySingleRenderer(TargetObject);  // TODO: 后续替换为逐对象
+    }
+
+    private Matrix4x4 GetPVMMatrix(GameObject go, Camera camera) {
+        // bool d3d = SystemInfo.graphicsDeviceVersion.IndexOf("Direct3D") > -1;
+        Matrix4x4 M = go.transform.localToWorldMatrix;
+        Matrix4x4 V = camera.worldToCameraMatrix;
+        // 根据当前图形API调整P矩阵
+        // TODO: 是否渲染到RT，这里可能需要调整，即使不调整，上下颠倒应该也不影响count
+        Matrix4x4 P = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);
+        // Matrix4x4 P = camera.projectionMatrix;
+        // if (d3d) {
+        //     // Invert Y for rendering to a render texture
+        //     for (int i = 0; i < 4; i++) {
+        //         P[1, i] = -P[1, i];
+        //     }
+        //     // Scale and bias from OpenGL -> D3D depth range
+        //     for (int i = 0; i < 4; i++) {
+        //         P[2, i] = P[2, i] * 0.5f + P[3, i] * 0.5f;
+        //     }
+        // }
+        return P * V * M;
     }
 
     static float[] _alphaThresholds = new float[] {
@@ -62,13 +83,24 @@ public class OcclusionQueryUI : MonoBehaviour
         var calibrationMaterial = GenerateTextureUtility.CalibrationMaterial;   // TODO: 确保测量纹理已经加载到材质
 
         try {
+            _originLayer = renderer.gameObject.layer;
             // 替换材质
             ReplaceWithCalibrationMaterial(renderer, calibrationMaterial);
-            _originLayer = renderer.gameObject.layer;
-            renderer.gameObject.layer = TempLayer.value;
+            // renderer.gameObject.layer = TempLayer.value;
+            // Graphics.SetRenderTarget(TempRT);
+            // GL.Clear(true, true, Color.black);
+            GL.PushMatrix();
+            var projectionMatrix = GL.GetGPUProjectionMatrix(OcclusionQueryCamera.projectionMatrix, false);
+            GL.LoadProjectionMatrix(projectionMatrix);
+
+            var PVM = GetPVMMatrix(renderer.gameObject, OcclusionQueryCamera);
+
+            // 设置DrawMeshNow需要的矩阵，很乱
+            // https://forum.unity.com/threads/using-graphics-drawmeshnow-with-a-gl-loadortho-is-this-a-valid-method.330707/
+            
             // TODO: 逐步调整
             // test total fragment count without alpha clip
-            int total = CountFragmentWithAlphaThreshold(renderer, 0, calibrationMaterial);
+            int total = CountFragmentWithAlphaThreshold(renderer, 0, calibrationMaterial, PVM);
             if (total <= 0) {
                 // 当前renderer没有在摄像机里，不做剔除
                 // TODO: 还是记录一下
@@ -81,7 +113,7 @@ public class OcclusionQueryUI : MonoBehaviour
             int i = 0;
             for (; i < _alphaThresholds.Length; ++i) {
                 float alpha = _alphaThresholds[i] - 0.001f;      // 0.001f避免比较相等时的浮点误差，TODO: 后面改用区间噪声alpha后就不需要0.001f了
-                int fragPass = CountFragmentWithAlphaThreshold(renderer, alpha, calibrationMaterial);
+                int fragPass = CountFragmentWithAlphaThreshold(renderer, alpha, calibrationMaterial, PVM);
                 if (fragPass >= total * 0.15) {
                     // 当前mip超过15%可见，保留。该纹理从2048开始剔除i层mipmap，即缩小比例为pow(4, -i)
                     // TODO: 记录当前renderer需要使用mipLevel = i
@@ -94,12 +126,13 @@ public class OcclusionQueryUI : MonoBehaviour
             }
         } finally {
             // 回滚材质
+            GL.PopMatrix();
             renderer.gameObject.layer = _originLayer;
             RestoreMaterial(renderer);
         }
     }
 
-    int CountFragmentWithAlphaThreshold(MeshRenderer renderer, float alphaThreshold, Material calibrationMaterial) {
+    int CountFragmentWithAlphaThreshold(MeshRenderer renderer, float alphaThreshold, Material calibrationMaterial, Matrix4x4 PVM) {
         if (alphaThreshold < 0.001) {
             calibrationMaterial.SetFloat("_AlphaClip", 0);
             calibrationMaterial.DisableKeyword("_ALPHATEST_ON");
@@ -109,11 +142,21 @@ public class OcclusionQueryUI : MonoBehaviour
             calibrationMaterial.EnableKeyword("_ALPHATEST_ON");
         }
 
+        var meshFilter = renderer.GetComponent<MeshFilter>();
+        if (!meshFilter)
+            return 0;
+
+        var mesh = meshFilter.sharedMesh;
         // TODO: start query, call native plugin
-        GL.IssuePluginEvent(GetBeginQueryEventFunc(), 1);
-        OcclusionQueryCamera.Render();
+        //GL.IssuePluginEvent(GetBeginQueryEventFunc(), 1);
+        if (mesh != null && calibrationMaterial.SetPass(0)) {
+            // Graphics.DrawMeshNow(mesh, PVM);
+            Graphics.DrawMeshNow(mesh, OcclusionQueryCamera.worldToCameraMatrix * renderer.transform.localToWorldMatrix);
+            // Graphics.DrawMesh(mesh, renderer.transform.localToWorldMatrix, calibrationMaterial, _originLayer);
+        }
+        //OcclusionQueryCamera.Render();
         // TODO: end query
-        GL.IssuePluginEvent(GetEndQueryEventFunc(), 1);
+        //GL.IssuePluginEvent(GetEndQueryEventFunc(), 1);
         
 
         return 0;
@@ -144,5 +187,21 @@ public class OcclusionQueryUI : MonoBehaviour
 
         _originMaterial = null;
         _originMaterials = null;
+    }
+
+    // TODO: update和start 2选1
+    //private void Update() {
+    //    QuerySingleRenderer(TargetObject);
+    //}
+    IEnumerator Start() {
+        yield return StartCoroutine("CallPluginAtEndOfFrames");
+    }
+
+    private IEnumerator CallPluginAtEndOfFrames() {
+        while (true) {
+            // Wait until all frame rendering is done
+            yield return new WaitForEndOfFrame();
+            QuerySingleRenderer(TargetObject);  // TODO: 后续替换为逐对象
+        }
     }
 }
