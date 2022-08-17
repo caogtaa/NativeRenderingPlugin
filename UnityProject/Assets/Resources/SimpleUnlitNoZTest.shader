@@ -1,4 +1,4 @@
-Shader "LQ/SimpleUnlit"
+Shader "LQ/SimpleUnlitNoZTest"
 {
     Properties
     {
@@ -31,8 +31,8 @@ Shader "LQ/SimpleUnlit"
         LOD 100
 
         Blend [_SrcBlend][_DstBlend]
-        // ZTest Off
-        ZWrite [_ZWrite]
+        ZTest Off
+        ZWrite Off // [_ZWrite] 不写入深度，可以不清理RT一直写入
         Cull [_Cull]
 
         Pass

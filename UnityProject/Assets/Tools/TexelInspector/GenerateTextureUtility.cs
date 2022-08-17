@@ -47,6 +47,7 @@ namespace TexelDensityTools
         private static Material _texelDisplayMaterial;
         private static Material _pureColorMaterial;
         private static Material _calibrationMaterial;
+        private static Material _calibrationNoZTestMaterial;
         private static readonly int ScaleX = Shader.PropertyToID("_ScaleX");
         private static readonly int ScaleY = Shader.PropertyToID("_ScaleY");
         private static readonly int PixelsX = Shader.PropertyToID("_PixelsX");
@@ -104,15 +105,32 @@ namespace TexelDensityTools
             }
         }
 
+        public static Material CalibrationNoZTestMaterial {
+            get {
+                if (_calibrationNoZTestMaterial != null)
+                    return _calibrationNoZTestMaterial;
+
+                string sourceMaterialPath = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("CalibrationNoZTestMaterial t: Material")[0]);
+                _calibrationNoZTestMaterial = AssetDatabase.LoadAssetAtPath<Material>(sourceMaterialPath);
+                return _calibrationNoZTestMaterial;
+            }
+        }
+
         private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
         public static void GenerateAndSetCalibrationTexture() {
             var material = CalibrationMaterial;
-            if (!material)
-                return;
+            Texture texture = null;
+            if (material && material.GetTexture(BaseMapId) == null) {
+                if (!texture)
+                    texture = GenerateCalibrationTexture(2048, 2048);
+                material.SetTexture(BaseMapId, texture);
+            }
 
-            if (material.GetTexture(BaseMapId) == null) {
-                var texture = GenerateCalibrationTexture(2048, 2048);
-                material?.SetTexture(BaseMapId, texture);
+            material = CalibrationNoZTestMaterial;
+            if (material && material.GetTexture(BaseMapId) == null) {
+                if (!texture)
+                    texture = GenerateCalibrationTexture(2048, 2048);
+                material.SetTexture(BaseMapId, texture);
             }
         }
 

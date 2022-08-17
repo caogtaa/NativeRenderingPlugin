@@ -94,8 +94,7 @@ public class OcclusionQueryRunner
     int DoQuery(MeshRenderer renderer) {
         // TODO: 将相机平移到renderer正对面
         // 基于策划配置的原始相机位置，X平移到物体世界坐标，Z根据关卡配置测试上下边界
-        var calibrationMaterial = GenerateTextureUtility.CalibrationMaterial;   // TODO: 确保测量纹理已经加载到材质
-
+        var calibrationNoZTestMaterial = GenerateTextureUtility.CalibrationNoZTestMaterial;
         try {
             // _originLayer = renderer.gameObject.layer;
             // 替换材质
@@ -118,29 +117,27 @@ public class OcclusionQueryRunner
             
             // TODO: 逐步调整
             // test total fragment count without alpha clip
-            int total = CountFragmentWithAlphaThreshold(renderer, 0, calibrationMaterial, MVP);
+            int total = CountFragmentWithAlphaThreshold(renderer, 0, calibrationNoZTestMaterial, MVP);
             if (total <= 0) {
                 // 当前renderer没有在摄像机里，不做剔除
                 // TODO: 还是记录一下
                 return total;
             }
 
-            // TODO: open
-            return total;
-
             int i = 0;
             for (; i < _alphaThresholds.Length; ++i) {
-                float alpha = _alphaThresholds[i] - 0.001f;      // 0.001f避免比较相等时的浮点误差，TODO: 后面改用区间噪声alpha后就不需要0.001f了
-                int fragPass = CountFragmentWithAlphaThreshold(renderer, alpha, calibrationMaterial, MVP);
+                float alpha = _alphaThresholds[i] - 0.01f;      // 0.01f避免比较相等时的浮点误差，TODO: 后面改用区间噪声alpha后就不需要0.01f了
+                int fragPass = CountFragmentWithAlphaThreshold(renderer, alpha, calibrationNoZTestMaterial, MVP);
                 if (fragPass >= total * 0.15) {
                     // 当前mip超过15%可见，保留。该纹理从2048开始剔除i层mipmap，即缩小比例为pow(4, -i)
                     // TODO: 记录当前renderer需要使用mipLevel = i
-                    break;
+                    return i;
                 }
             }
 
             if (i >= _alphaThresholds.Length) {
                 // TODO: 物体太小了，记录当前renderer使用mipLevel = 4。可以和上面break合并掉
+                return 4;
             }
         } finally {
             // 回滚材质
@@ -153,12 +150,12 @@ public class OcclusionQueryRunner
     }
 
     int CountFragmentWithAlphaThreshold(MeshRenderer renderer, float alphaThreshold, Material calibrationMaterial, Matrix4x4 MVP) {
-        if (alphaThreshold < 0.001) {
+        if (alphaThreshold < 0.01) {
             calibrationMaterial.SetFloat("_AlphaClip", 0);
             calibrationMaterial.DisableKeyword("_ALPHATEST_ON");
         } else {
             calibrationMaterial.SetFloat("_AlphaClip", 1);
-            calibrationMaterial.SetFloat("_Cutoff", 1);
+            calibrationMaterial.SetFloat("_Cutoff", alphaThreshold);
             calibrationMaterial.EnableKeyword("_ALPHATEST_ON");
         }
 

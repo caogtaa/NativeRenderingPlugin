@@ -40,6 +40,7 @@ public:
 	}
 };
 
+// 用于同步script thread和render thread
 static semaphore g_QuerySemaphore;
 
 // --------------------------------------------------------------------------
