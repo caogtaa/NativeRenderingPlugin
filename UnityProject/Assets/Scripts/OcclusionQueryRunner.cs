@@ -58,7 +58,7 @@ public class OcclusionQueryRunner
         Matrix4x4 V = camera.worldToCameraMatrix;
         // 根据当前图形API调整P矩阵
         // TODO: 是否渲染到RT，这里可能需要调整，即使不调整，上下颠倒应该也不影响count
-        Matrix4x4 P = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);
+        Matrix4x4 P = GL.GetGPUProjectionMatrix(camera.projectionMatrix, true);
         // Matrix4x4 P = camera.projectionMatrix;
         // if (d3d) {
         //     // Invert Y for rendering to a render texture
@@ -91,7 +91,12 @@ public class OcclusionQueryRunner
 
             // GL.Clear(true, true, Color.black);
             GL.PushMatrix();
-            var projectionMatrix = GL.GetGPUProjectionMatrix(OcclusionQueryCamera.projectionMatrix, false);
+            var projectionMatrix = GL.GetGPUProjectionMatrix(OcclusionQueryCamera.projectionMatrix, true);
+            //var c3 = projectionMatrix.GetColumn(3);
+            //projectionMatrix.SetColumn(3, new Vector4(-1, -1, c3.z, c3.w));
+            //if (Camera.current != null) {
+            //    projectionMatrix *= Camera.current.worldToCameraMatrix.inverse;
+            //}
             GL.LoadProjectionMatrix(projectionMatrix);
 
             var MVP = GetMVPMatrix(renderer.gameObject, OcclusionQueryCamera);
@@ -151,6 +156,7 @@ public class OcclusionQueryRunner
         if (mesh != null && calibrationMaterial.SetPass(0)) {
             // 经过大量测试，DrawMeshNow需要的矩阵是MV矩阵
             // P矩阵通过GL.LoadProjectionMatrix()进行设置
+            bool checkCompiled = ShaderUtil.IsPassCompiled(calibrationMaterial, 0);
             var originAllowAsync = ShaderUtil.allowAsyncCompilation;
             ShaderUtil.allowAsyncCompilation = false;
             Graphics.DrawMeshNow(mesh, matrixMV);

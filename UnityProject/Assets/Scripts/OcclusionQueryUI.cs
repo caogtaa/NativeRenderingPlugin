@@ -64,15 +64,16 @@ public class OcclusionQueryUI : MonoBehaviour
     //private void Update() {
     //    QuerySingleRenderer(TargetObject);
     //}
-    // IEnumerator Start() {
-    //     yield return StartCoroutine("CallPluginAtEndOfFrames");
-    // }
+    //IEnumerator Start() {
+    //    yield return StartCoroutine("CallPluginAtEndOfFrames");
+    //}
 
-    // private IEnumerator CallPluginAtEndOfFrames() {
-    //     while (true) {
-    //         // Wait until all frame rendering is done
-    //         yield return new WaitForEndOfFrame();
-    //         QuerySingleRenderer(TargetObject);  // TODO: 后续替换为逐对象
-    //     }
-    // }
+    //private IEnumerator CallPluginAtEndOfFrames() {
+    //    _runner.Setup(OcclusionQueryCamera, TempRT);
+    //    while (true) {
+    //        // Wait until all frame rendering is done
+    //        yield return new WaitForEndOfFrame();
+    //        _runner.QuerySingleRenderer(TargetObject);
+    //    }
+    //}
 }
