@@ -104,6 +104,18 @@ namespace TexelDensityTools
             }
         }
 
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        public static void GenerateAndSetCalibrationTexture() {
+            var material = CalibrationMaterial;
+            if (!material)
+                return;
+
+            if (material.GetTexture(BaseMapId) == null) {
+                var texture = GenerateCalibrationTexture(2048, 2048);
+                material?.SetTexture(BaseMapId, texture);
+            }
+        }
+
         private static Texture GenerateDensityTexture(Texture inTexture, int texelDensity)
         {
             int width = inTexture.width;
@@ -173,10 +185,24 @@ namespace TexelDensityTools
             return _mipAlphaValues[mipLevel];
         }
 
+        // 从TexelInspector里拷贝过来，TODO: 先临时这么搞，否则必须打开TexelInspector窗口
+        private static Color[] _mipColors = {
+            Color.magenta,
+            new Color(178f/255, 0, 1),          // purple
+            Color.blue,
+            new Color(6f/255, 164f/255, 235f/255),          // another blue
+            Color.green,
+            new Color(249f/255, 242f/255, 44f/255),         // light yellow
+            Color.red,
+            Color.white,
+            Color.grey,
+            new Color(160f/255, 238f/255, 239f/255),        // light blue
+        };
+
         private static Color MipColorValue(int mipLevel) {
             var index = 7 - mipLevel;       // swatch 2048对应index = 7，并且排序和mip level相反
-            index = Mathf.Clamp(index, 0, _swatchColors.Length-1);
-            return _swatchColors[index];
+            index = Mathf.Clamp(index, 0, _mipColors.Length-1);
+            return _mipColors[index];
         }
 
         private static RenderTexture GenerateSingleCalibrationTexture(int width, int height, int inMipLevel)

@@ -49,6 +49,7 @@ public class OcclusionQueryUI : MonoBehaviour
 
         // Debug.Log("Start Query");
         // LabelFragPass.text = "1234";
+        GenerateTextureUtility.GenerateAndSetCalibrationTexture();
         QuerySingleRenderer(TargetObject);  // TODO: 后续替换为逐对象
     }
 
@@ -192,18 +193,20 @@ public class OcclusionQueryUI : MonoBehaviour
     }
 
     // TODO: update和start 2选1
+    // Update方式在帧前执行
+    // Start方式在帧尾执行
     //private void Update() {
     //    QuerySingleRenderer(TargetObject);
     //}
-    IEnumerator Start() {
-        yield return StartCoroutine("CallPluginAtEndOfFrames");
-    }
+    // IEnumerator Start() {
+    //     yield return StartCoroutine("CallPluginAtEndOfFrames");
+    // }
 
-    private IEnumerator CallPluginAtEndOfFrames() {
-        while (true) {
-            // Wait until all frame rendering is done
-            yield return new WaitForEndOfFrame();
-            QuerySingleRenderer(TargetObject);  // TODO: 后续替换为逐对象
-        }
-    }
+    // private IEnumerator CallPluginAtEndOfFrames() {
+    //     while (true) {
+    //         // Wait until all frame rendering is done
+    //         yield return new WaitForEndOfFrame();
+    //         QuerySingleRenderer(TargetObject);  // TODO: 后续替换为逐对象
+    //     }
+    // }
 }

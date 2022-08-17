@@ -32,7 +32,7 @@ Shader "LQ/SimpleUnlit"
 
         Blend [_SrcBlend][_DstBlend]
         ZTest Off
-        ZWrite Off //[_ZWrite]
+        ZWrite Off // [_ZWrite] 不写入深度，可以不清理RT一直写入
         Cull [_Cull]
 
         Pass

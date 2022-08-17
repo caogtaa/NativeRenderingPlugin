@@ -41,7 +41,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _InputTexture:
-        m_Texture: {fileID: 2800000, guid: e27c860d09d10fa48862d6aa3bcca620, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
@@ -80,17 +80,17 @@ Material:
     - _GlossyReflections: 1
     - _IndicatorScalar: 1
     - _Metallic: 0
-    - _MipLevel: 11
+    - _MipLevel: 10
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _PixelsX: 1
     - _PixelsY: 1
-    - _ScaleX: 2
-    - _ScaleY: 2
+    - _ScaleX: 1
+    - _ScaleY: 1
     - _SmoothnessTextureChannel: 0
-    - _SourcePixelsX: 2048
-    - _SourcePixelsY: 2048
+    - _SourcePixelsX: 1024
+    - _SourcePixelsY: 1024
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _UVSec: 0
