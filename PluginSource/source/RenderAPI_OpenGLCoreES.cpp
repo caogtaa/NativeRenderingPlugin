@@ -367,7 +367,9 @@ void RenderAPI_OpenGLCoreES::DoHandleQueryEvent(int eventType, int* result) {
 		GLuint64 params = 0;
 		int count = -1;
 		glGetQueryObjectui64v(m_queryID, GL_QUERY_RESULT_AVAILABLE, &params);
-		if (params == GL_TRUE) {
+		// 不确认结果是否就绪，阻塞式等待
+		// 这里通常会同时挂起render thread和script thread
+		if (true) {//params == GL_TRUE) {
 			glGetQueryObjectui64v(m_queryID, GL_QUERY_RESULT, &params);
 			count = (int)params;
 		}
