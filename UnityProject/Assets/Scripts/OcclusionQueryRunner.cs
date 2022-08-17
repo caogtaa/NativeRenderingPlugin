@@ -30,6 +30,13 @@ public class OcclusionQueryRunner
 #endif
 	private static extern IntPtr GetEndQueryEventFunc();
 
+#if (UNITY_IOS || UNITY_TVOS || UNITY_WEBGL) && !UNITY_EDITOR
+	[DllImport ("__Internal")]
+#else
+    [DllImport("RenderingPlugin")]
+#endif
+    private static extern int GetLastQueryResult();
+
     public void Setup(Camera camera, RenderTexture rt) {
         OcclusionQueryCamera = camera;
         TempRT = rt;
@@ -46,9 +53,9 @@ public class OcclusionQueryRunner
         
     //}
 
-    public void QuerySingleRenderer(MeshRenderer renderer) {
+    public int QuerySingleRenderer(MeshRenderer renderer) {
         GenerateTextureUtility.GenerateAndSetCalibrationTexture();
-        DoQuery(renderer);
+        return DoQuery(renderer);
     }
 
 
@@ -76,7 +83,7 @@ public class OcclusionQueryRunner
     static float[] _alphaThresholds = new float[] {
         1, 0.75f, 0.5f, 0.25f
     };
-    void DoQuery(MeshRenderer renderer) {
+    int DoQuery(MeshRenderer renderer) {
         // TODO: 将相机平移到renderer正对面
         // 基于策划配置的原始相机位置，X平移到物体世界坐标，Z根据关卡配置测试上下边界
         var calibrationMaterial = GenerateTextureUtility.CalibrationMaterial;   // TODO: 确保测量纹理已经加载到材质
@@ -107,11 +114,11 @@ public class OcclusionQueryRunner
             if (total <= 0) {
                 // 当前renderer没有在摄像机里，不做剔除
                 // TODO: 还是记录一下
-                return;
+                return 0;
             }
 
             // TODO: open
-            return;
+            return total;
 
             int i = 0;
             for (; i < _alphaThresholds.Length; ++i) {
@@ -133,6 +140,8 @@ public class OcclusionQueryRunner
             // renderer.gameObject.layer = _originLayer;
             // RestoreMaterial(renderer);
         }
+
+        return 0;
     }
 
     int CountFragmentWithAlphaThreshold(MeshRenderer renderer, float alphaThreshold, Material calibrationMaterial, Matrix4x4 MVP) {
@@ -167,10 +176,12 @@ public class OcclusionQueryRunner
         }
         //OcclusionQueryCamera.Render();
         // TODO: end query
+        // 经过测试推断GL.IssuePluginEvent是阻塞式跨线程执行，所以可以调用后下一步直接访问结果
         GL.IssuePluginEvent(GetEndQueryEventFunc(), 1);
+        int fragPass = GetLastQueryResult();
         
 
-        return 0;
+        return fragPass;
     }
 
     // void ReplaceWithCalibrationMaterial(MeshRenderer renderer, Material calibrationMaterial) {

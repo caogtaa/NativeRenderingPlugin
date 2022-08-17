@@ -54,7 +54,7 @@ public:
 
 	virtual void DoBeginQuery();
 
-	virtual void DoEndQuery();
+	virtual int DoEndQuery();
 
 private:
 	void CreateResources();
@@ -355,13 +355,16 @@ void RenderAPI_OpenGLCoreES::DoBeginQuery() {
 #	endif
 }
 
-void RenderAPI_OpenGLCoreES::DoEndQuery() {
+int RenderAPI_OpenGLCoreES::DoEndQuery() {
+	GLuint64 params = 0;
+
 #	if SUPPORT_OPENGL_ES
 	glEndQuery(GL_SAMPLES_PASSED);
-	GLuint64 params = 0;
-	glGetQueryObjectui64v(m_queryID, GL_QUERY_RESULT, &params);
+	glGetQueryObjectui64v(m_queryID, GL_QUERY_RESULT, &params);		// 根据网上资料这里直接访问结果就会变成同步模式
 	glDeleteQueries(1, &m_queryID);
 #	endif
+
+	return (int)params;
 }
 
 #endif // #if SUPPORT_OPENGL_UNIFIED

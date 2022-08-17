@@ -51,7 +51,8 @@ public class OcclusionQueryUI : MonoBehaviour
         // TODO: 确保材质加载并且测量纹理已经设置到材质
 #if UNITY_EDITOR
         _runner.Setup(OcclusionQueryCamera, TempRT);
-        _runner.QuerySingleRenderer(TargetObject);
+        int result = _runner.QuerySingleRenderer(TargetObject);
+        LabelFragPass.text = result.ToString();
 #endif
 
         // Debug.Log("Start Query");

@@ -50,7 +50,9 @@ public:
 
 	virtual void DoBeginQuery() {};
 
-	virtual void DoEndQuery() {};
+	virtual int DoEndQuery() {
+		return 0;
+	};
 };
 
 

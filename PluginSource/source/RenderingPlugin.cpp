@@ -1,4 +1,4 @@
-// Example low level rendering Unity plugin
+﻿// Example low level rendering Unity plugin
 
 #include "PlatformBase.h"
 #include "RenderAPI.h"
@@ -131,6 +131,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API RegisterPlugin()
 
 
 static RenderAPI* s_CurrentAPI = NULL;
+static int s_LastQueryResult = 0;
 static UnityGfxRenderer s_DeviceType = kUnityGfxRendererNull;
 
 
@@ -307,10 +308,12 @@ static void UNITY_INTERFACE_API OnBeginQueryEvent(int eventID)
 
 static void UNITY_INTERFACE_API OnEndQueryEvent(int eventID)
 {
-	if (s_CurrentAPI == NULL)
+	if (s_CurrentAPI == NULL) {
+		s_LastQueryResult = 0;
 		return;
+	}
 
-	s_CurrentAPI->DoEndQuery();
+	s_LastQueryResult = s_CurrentAPI->DoEndQuery();
 }
 
 
@@ -332,3 +335,9 @@ extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetEnd
 	return OnEndQueryEvent;
 }
 
+// 返回值32位暂时够用了
+// 注意这里的方法允许在script thread调用，这里通过信号量阻塞等待EndQuery完成
+extern "C" int UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetLastQueryResult()
+{
+	return s_LastQueryResult;
+}
