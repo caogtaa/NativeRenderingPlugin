@@ -7,6 +7,40 @@
 #include <math.h>
 #include <vector>
 
+#include <mutex>
+#include <condition_variable>
+
+// https://stackoverflow.com/questions/4792449/c0x-has-no-semaphores-how-to-synchronize-threads
+class semaphore {
+	std::mutex mutex_;
+	std::condition_variable condition_;
+	unsigned long count_ = 0; // Initialized as locked.
+
+public:
+	void release() {
+		std::lock_guard<decltype(mutex_)> lock(mutex_);
+		++count_;
+		condition_.notify_one();
+	}
+
+	void acquire() {
+		std::unique_lock<decltype(mutex_)> lock(mutex_);
+		while (!count_) // Handle spurious wake-ups.
+			condition_.wait(lock);
+		--count_;
+	}
+
+	bool try_acquire() {
+		std::lock_guard<decltype(mutex_)> lock(mutex_);
+		if (count_) {
+			--count_;
+			return true;
+		}
+		return false;
+	}
+};
+
+static semaphore g_QuerySemaphore;
 
 // --------------------------------------------------------------------------
 // SetTimeFromUnity, an example function we export which is called by one of the scripts.
@@ -131,7 +165,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API RegisterPlugin()
 
 
 static RenderAPI* s_CurrentAPI = NULL;
-static int s_LastQueryResult = 0;
+static int s_LastQueryResult = -1;	// -1 for result not ready
 static UnityGfxRenderer s_DeviceType = kUnityGfxRendererNull;
 
 
@@ -298,24 +332,21 @@ static void UNITY_INTERFACE_API OnRenderEvent(int eventID)
 	ModifyVertexBuffer();
 }
 
-static void UNITY_INTERFACE_API OnBeginQueryEvent(int eventID)
+static void UNITY_INTERFACE_API OnQueryEvent(int eventID)
 {
 	if (s_CurrentAPI == NULL)
 		return;
 
-	s_CurrentAPI->DoBeginQuery();
-}
-
-static void UNITY_INTERFACE_API OnEndQueryEvent(int eventID)
-{
-	if (s_CurrentAPI == NULL) {
-		s_LastQueryResult = 0;
-		return;
+	if (eventID == 2) {
+		// is query result
+		s_LastQueryResult = -1;
+		s_CurrentAPI->DoHandleQueryEvent(eventID, &s_LastQueryResult);
+		g_QuerySemaphore.release();
+		// TODO: 释放信号量
+	} else {
+		s_CurrentAPI->DoHandleQueryEvent(eventID, NULL);
 	}
-
-	s_LastQueryResult = s_CurrentAPI->DoEndQuery();
 }
-
 
 // --------------------------------------------------------------------------
 // GetRenderEventFunc, an example function we export which is used to get a rendering event callback function.
@@ -325,19 +356,24 @@ extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetRen
 	return OnRenderEvent;
 }
 
-extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetBeginQueryEventFunc()
+extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetQueryEventFunc()
 {
-	return OnBeginQueryEvent;
+	return OnQueryEvent;
 }
 
-extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetEndQueryEventFunc()
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetLastQueryResultSyncBegin()
 {
-	return OnEndQueryEvent;
+	// TODO: 保证信号量被重新初始化，避免上一次的错误遗留数据
+	// TODO: 开启信号量
 }
+
+// 两个函数之间固定调用render thread的方法OnQueryEvent(eventID = 2)
 
 // 返回值32位暂时够用了
 // 注意这里的方法允许在script thread调用，这里通过信号量阻塞等待EndQuery完成
-extern "C" int UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetLastQueryResult()
+extern "C" int UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetLastQueryResultSyncEnd()
 {
+	// TODO: 等待信号量
+	g_QuerySemaphore.acquire();
 	return s_LastQueryResult;
 }

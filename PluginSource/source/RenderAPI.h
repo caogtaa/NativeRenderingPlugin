@@ -48,11 +48,13 @@ public:
 	// End modifying vertex buffer data.
 	virtual void EndModifyVertexBuffer(void* bufferHandle) = 0;
 
-	virtual void DoBeginQuery() {};
+	// eventType
+	//   0: begin
+	//	 1: end
+	//	 2: query no wait, fill result
+	virtual void DoHandleQueryEvent(int eventType, int* result) {
 
-	virtual int DoEndQuery() {
-		return 0;
-	};
+	}
 };
 
 

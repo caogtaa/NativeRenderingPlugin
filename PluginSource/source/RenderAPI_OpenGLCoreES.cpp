@@ -38,7 +38,7 @@ class RenderAPI_OpenGLCoreES : public RenderAPI
 {
 public:
 	RenderAPI_OpenGLCoreES(UnityGfxRenderer apiType);
-	virtual ~RenderAPI_OpenGLCoreES() { }
+	virtual ~RenderAPI_OpenGLCoreES() {}
 
 	virtual void ProcessDeviceEvent(UnityGfxDeviceEventType type, IUnityInterfaces* interfaces);
 
@@ -52,9 +52,7 @@ public:
 	virtual void* BeginModifyVertexBuffer(void* bufferHandle, size_t* outBufferSize);
 	virtual void EndModifyVertexBuffer(void* bufferHandle);
 
-	virtual void DoBeginQuery();
-
-	virtual int DoEndQuery();
+	virtual void DoHandleQueryEvent(int eventType, int* result);
 
 private:
 	void CreateResources();
@@ -69,6 +67,7 @@ private:
 	int m_UniformWorldMatrix;
 	int m_UniformProjMatrix;
 	bool m_isWaitingForOcclusionQuery = false;
+	bool m_hasQuery = false;
 	GLuint m_queryID;
 };
 
@@ -221,6 +220,12 @@ void RenderAPI_OpenGLCoreES::ProcessDeviceEvent(UnityGfxDeviceEventType type, IU
 	else if (type == kUnityGfxDeviceEventShutdown)
 	{
 		//@TODO: release resources
+#	if SUPPORT_OPENGL_ES
+		if (m_hasQuery) {
+			m_hasQuery = false;
+			glDeleteQueries(1, &m_queryID);
+		}
+#	endif
 	}
 }
 
@@ -348,23 +353,30 @@ void RenderAPI_OpenGLCoreES::EndModifyVertexBuffer(void* bufferHandle)
 #	endif
 }
 
-void RenderAPI_OpenGLCoreES::DoBeginQuery() {
+void RenderAPI_OpenGLCoreES::DoHandleQueryEvent(int eventType, int* result) {
 #	if SUPPORT_OPENGL_ES
-	glGenQueries(1, &m_queryID);
-	glBeginQuery(GL_SAMPLES_PASSED, m_queryID);
+	if (eventType == 0) {
+		if (!m_hasQuery) {
+			glGenQueries(1, &m_queryID);
+			m_hasQuery = true;
+		}
+		glBeginQuery(GL_SAMPLES_PASSED, m_queryID);
+	} else if (eventType == 1) {
+		glEndQuery(GL_SAMPLES_PASSED);
+	} else if (eventType == 2) {
+		GLuint64 params = 0;
+		int count = -1;
+		glGetQueryObjectui64v(m_queryID, GL_QUERY_RESULT_AVAILABLE, &params);
+		if (params == GL_TRUE) {
+			glGetQueryObjectui64v(m_queryID, GL_QUERY_RESULT, &params);
+			count = (int)params;
+		}
+
+		if (result) {
+			*result = count;
+		}
+	}
 #	endif
-}
-
-int RenderAPI_OpenGLCoreES::DoEndQuery() {
-	GLuint64 params = 0;
-
-#	if SUPPORT_OPENGL_ES
-	glEndQuery(GL_SAMPLES_PASSED);
-	glGetQueryObjectui64v(m_queryID, GL_QUERY_RESULT, &params);		// 根据网上资料这里直接访问结果就会变成同步模式
-	glDeleteQueries(1, &m_queryID);
-#	endif
-
-	return (int)params;
 }
 
 #endif // #if SUPPORT_OPENGL_UNIFIED

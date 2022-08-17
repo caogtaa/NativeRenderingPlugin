@@ -59,6 +59,11 @@ public class OcclusionQueryUI : MonoBehaviour
         // LabelFragPass.text = "1234";
     }
 
+    public void OnFetchResultBtnClicked() {
+        int result = _runner.GetPluginLastQueryResult();
+        LabelFragPass.text = result.ToString();
+    }
+
     // TODO: update和start 2选1
     // Update方式在帧前执行
     // Start方式在帧尾执行

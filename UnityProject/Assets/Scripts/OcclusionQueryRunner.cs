@@ -21,21 +21,21 @@ public class OcclusionQueryRunner
 #else
 	[DllImport("RenderingPlugin")]
 #endif
-	private static extern IntPtr GetBeginQueryEventFunc();
-
-#if (UNITY_IOS || UNITY_TVOS || UNITY_WEBGL) && !UNITY_EDITOR
-	[DllImport ("__Internal")]
-#else
-	[DllImport("RenderingPlugin")]
-#endif
-	private static extern IntPtr GetEndQueryEventFunc();
+	private static extern IntPtr GetQueryEventFunc();
 
 #if (UNITY_IOS || UNITY_TVOS || UNITY_WEBGL) && !UNITY_EDITOR
 	[DllImport ("__Internal")]
 #else
     [DllImport("RenderingPlugin")]
 #endif
-    private static extern int GetLastQueryResult();
+    private static extern void GetLastQueryResultSyncBegin();
+
+#if (UNITY_IOS || UNITY_TVOS || UNITY_WEBGL) && !UNITY_EDITOR
+	[DllImport ("__Internal")]
+#else
+    [DllImport("RenderingPlugin")]
+#endif
+    private static extern int GetLastQueryResultSyncEnd();
 
     public void Setup(Camera camera, RenderTexture rt) {
         OcclusionQueryCamera = camera;
@@ -56,6 +56,14 @@ public class OcclusionQueryRunner
     public int QuerySingleRenderer(MeshRenderer renderer) {
         GenerateTextureUtility.GenerateAndSetCalibrationTexture();
         return DoQuery(renderer);
+    }
+
+    // TODO: 出现任何异常需要清空信号量
+    public int GetPluginLastQueryResult() {
+        GetLastQueryResultSyncBegin();                  // 在plugin内部开启信号量
+        GL.IssuePluginEvent(GetQueryEventFunc(), 2);    // 在render thread读取数据并设置信号量
+        int fragPass = GetLastQueryResultSyncEnd();     // 等待信号量
+        return fragPass;
     }
 
 
@@ -114,7 +122,7 @@ public class OcclusionQueryRunner
             if (total <= 0) {
                 // 当前renderer没有在摄像机里，不做剔除
                 // TODO: 还是记录一下
-                return 0;
+                return total;
             }
 
             // TODO: open
@@ -160,8 +168,7 @@ public class OcclusionQueryRunner
 
         var mesh = meshFilter.sharedMesh;
         var matrixMV = OcclusionQueryCamera.worldToCameraMatrix * renderer.transform.localToWorldMatrix;
-        // TODO: start query, call native plugin
-        GL.IssuePluginEvent(GetBeginQueryEventFunc(), 1);
+        GL.IssuePluginEvent(GetQueryEventFunc(), 0);    // start query
         if (mesh != null && calibrationMaterial.SetPass(0)) {
             // 经过大量测试，DrawMeshNow需要的矩阵是MV矩阵
             // P矩阵通过GL.LoadProjectionMatrix()进行设置
@@ -176,11 +183,9 @@ public class OcclusionQueryRunner
         }
         //OcclusionQueryCamera.Render();
         // TODO: end query
-        // 经过测试推断GL.IssuePluginEvent是阻塞式跨线程执行，所以可以调用后下一步直接访问结果
-        GL.IssuePluginEvent(GetEndQueryEventFunc(), 1);
-        int fragPass = GetLastQueryResult();
-        
-
+        // 经过测试推断GL.IssuePluginEvent是非阻塞式跨线程执行，这里需要进行线程同步
+        GL.IssuePluginEvent(GetQueryEventFunc(), 1);    // end query
+        int fragPass = GetPluginLastQueryResult();
         return fragPass;
     }
 
