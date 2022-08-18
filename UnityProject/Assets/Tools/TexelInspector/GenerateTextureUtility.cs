@@ -111,7 +111,7 @@ namespace TexelDensityTools
                     return _calibrationNoZTestMaterial;
 
                 string sourceMaterialPath = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("CalibrationNoZTestMaterial t: Material")[0]);
-                _calibrationNoZTestMaterial = AssetDatabase.LoadAssetAtPath<Material>(sourceMaterialPath);
+                _calibrationNoZTestMaterial = new Material(AssetDatabase.LoadAssetAtPath<Material>(sourceMaterialPath));    // 拷贝一份，避免修改引起文件变化
                 return _calibrationNoZTestMaterial;
             }
         }
