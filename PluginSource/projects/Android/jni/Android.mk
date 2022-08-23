@@ -9,10 +9,12 @@ LOCAL_ARM_MODE := arm
 
 LOCAL_SRC_FILES += $(SRC_DIR)/RenderAPI.cpp
 LOCAL_SRC_FILES += $(SRC_DIR)/RenderingPlugin.cpp
+# LOCAL_SRC_FILES += $(SRC_DIR)/gl3w/gl3w.c
 
 # OpenGL ES
 LOCAL_SRC_FILES += $(SRC_DIR)/RenderAPI_OpenGLCoreES.cpp
 LOCAL_LDLIBS += -lGLESv2
+# LOCAL_LDLIBS += -lGLESv3
 LOCAL_CPPFLAGS += -DSUPPORT_OPENGL_ES=1
 
 # Vulkan (optional)

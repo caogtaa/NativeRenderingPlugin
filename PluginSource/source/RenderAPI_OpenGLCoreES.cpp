@@ -1,4 +1,4 @@
-#include "RenderAPI.h"
+﻿#include "RenderAPI.h"
 #include "PlatformBase.h"
 
 // OpenGL Core profile (desktop) or OpenGL ES (mobile) implementation of RenderAPI.
@@ -12,7 +12,13 @@
 #if UNITY_IOS || UNITY_TVOS
 #	include <OpenGLES/ES2/gl.h>
 #elif UNITY_ANDROID || UNITY_WEBGL
+# define GL_GLEXT_PROTOTYPES
 #	include <GLES2/gl2.h>
+#	include <GLES2/gl2ext.h>
+
+// # include <GLES2/gl2ext.h>
+// # include <GLES3/gl3platform.h>
+//#	include "gl3w/gl3w.h"
 #elif UNITY_OSX
 #	include <OpenGL/gl3.h>
 #elif UNITY_WIN
@@ -302,7 +308,11 @@ void* RenderAPI_OpenGLCoreES::BeginModifyVertexBuffer(void* bufferHandle, size_t
 	GLint size = 0;
 	glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
 	*outBufferSize = size;
+#	if UNITY_ANDROID
+	void* mapped = glMapBufferOES(GL_ARRAY_BUFFER, GL_WRITE_ONLY_OES);
+#	else
 	void* mapped = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+#	endif
 	return mapped;
 #	else
 	return 0;
@@ -314,7 +324,13 @@ void RenderAPI_OpenGLCoreES::EndModifyVertexBuffer(void* bufferHandle)
 {
 #	if SUPPORT_OPENGL_ES
 	glBindBuffer(GL_ARRAY_BUFFER, (GLuint)(size_t)bufferHandle);
+
+#	if UNITY_ANDROID
+	glUnmapBufferOES(GL_ARRAY_BUFFER);
+#	else
 	glUnmapBuffer(GL_ARRAY_BUFFER);
+#	endif
+
 #	endif
 }
 
