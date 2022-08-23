@@ -264,7 +264,8 @@ namespace TexelDensityTools
                 return;
 
             _runner.Setup(cameraGO.GetComponent<Camera>(), rt);
-            _runner.QuerySingleRenderer(rendererGO.GetComponent<MeshRenderer>());
+            int result = _runner.QuerySingleRenderer(rendererGO.GetComponent<MeshRenderer>());
+            Debug.Log($"{rendererGO.name}使用mipLevle = {result}");
         }
 
         private void ApplyCalibrationMaterial() {
