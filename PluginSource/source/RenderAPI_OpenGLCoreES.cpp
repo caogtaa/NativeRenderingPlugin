@@ -13,6 +13,23 @@
 #	include <OpenGLES/ES2/gl.h>
 #elif UNITY_ANDROID || UNITY_WEBGL
 #	include <GLES2/gl2.h>
+#	define GL_GLEXT_PROTOTYPES
+#	include <GLES2/gl2ext.h>
+
+#define GL_WRITE_ONLY		GL_WRITE_ONLY_OES
+#define glMapBuffer			glMapBufferOES
+#define glUnmapBuffer		glUnmapBufferOES
+
+#define glGenQueries		glGenQueriesEXT
+#define glDeleteQueries		glDeleteQueriesEXT
+#define glBeginQuery		glBeginQueryEXT
+#define glEndQuery			glEndQueryEXT
+#define glGetQueryObjectui64v	glGetQueryObjectui64vEXT
+#define GL_QUERY_RESULT_AVAILABLE	GL_QUERY_RESULT_AVAILABLE_EXT
+#define GL_QUERY_RESULT		GL_QUERY_RESULT_EXT
+#define GL_SAMPLES_PASSED	GL_SAMPLES_PASSED_EXT		// GLES不支持该参数，OcclusionQuery在GLES平台无解。
+// 只能通过 GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN 计算vertex数量
+
 #elif UNITY_OSX
 #	include <OpenGL/gl3.h>
 #elif UNITY_WIN

@@ -2,6 +2,7 @@
 *.vcxproj.user
 *.VC.opendb
 .vs
+.idea
 .vscode
 
 xcuserdata
@@ -23,3 +24,5 @@ PluginSource/projects/Android/libs/*
 PluginSource/projects/Android/obj/*
 
 UnityProject/UserSettings
+
+Builds
